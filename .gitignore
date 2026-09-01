@@ -2,3 +2,8 @@ vendor/
 .php-cs-fixer.cache
 .phpunit.result.cache
 contract/harness/node_modules/
+
+# A library does not ship a lock file. It only constrains this repository's own
+# development, and committing one generated on a newer PHP makes CI fail to
+# install on the oldest version the package supports.
+composer.lock
