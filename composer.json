@@ -1,0 +1,47 @@
+{
+  "name": "marginfuse/marginfuse",
+  "description": "MarginFuse server-side SDK. AI profitability guardrails: connect revenue to per-request AI cost and stop loss-making requests before they run. Sends usage metadata only, never prompts or responses.",
+  "type": "library",
+  "license": "MIT",
+  "homepage": "https://marginfuse.com",
+  "keywords": ["ai", "llm", "cost", "margin", "profitability", "stripe", "openai", "anthropic", "openrouter"],
+  "authors": [
+    {
+      "name": "Pemira Labs",
+      "homepage": "https://marginfuse.com"
+    }
+  ],
+  "support": {
+    "docs": "https://marginfuse.com/docs",
+    "issues": "https://github.com/marginfuse/marginfuse-php/issues",
+    "source": "https://github.com/marginfuse/marginfuse-php"
+  },
+  "require": {
+    "php": ">=8.1",
+    "ext-curl": "*",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.5 || ^11.0",
+    "phpstan/phpstan": "^2.0",
+    "friendsofphp/php-cs-fixer": "^3.64"
+  },
+  "autoload": {
+    "psr-4": {
+      "MarginFuse\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "MarginFuse\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit",
+    "analyse": "phpstan analyse",
+    "lint": "php-cs-fixer fix --dry-run --diff"
+  }
+}
