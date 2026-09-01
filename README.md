@@ -13,7 +13,7 @@ per customer, and stop loss-making requests before they run.
 - **Never breaks your app.** It does not throw into your code, and it does not
   block your request on MarginFuse being up. If MarginFuse is unreachable, your
   requests proceed unchanged.
-- **Zero dependencies.** PHP 8.1+, `ext-curl` and `ext-json` only. Nothing in
+- **Zero dependencies.** PHP 8.2+, `ext-curl` and `ext-json` only. Nothing in
   your `composer.lock` to conflict with.
 
 > **Server side only.** This SDK carries a secret API key. Never ship it in a

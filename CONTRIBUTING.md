@@ -24,7 +24,7 @@ npm --prefix contract/harness install
 npm --prefix contract/harness run conformance php
 ```
 
-CI runs all of it on PHP 8.1, 8.2, 8.3 and 8.4.
+CI runs all of it on PHP 8.2, 8.3 and 8.4.
 
 ## Four rules worth knowing before you change behavior
 

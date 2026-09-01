@@ -6,7 +6,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0]
 
-First release. PHP 8.1+, no Composer dependencies, `ext-curl` and `ext-json`.
+First release. PHP 8.2+, no Composer dependencies, `ext-curl` and `ext-json`.
 
 ### Added
 
@@ -38,6 +38,10 @@ First release. PHP 8.1+, no Composer dependencies, `ext-curl` and `ext-json`.
   rather than sent as zero, because those are different claims.
 - Analysed at PHPStan level 9, which surfaced a real one: `curl_exec` is typed
   `string|bool` and the code only handled `false`.
+- **PHP 8.2, not 8.1.** The value objects are `readonly class`, which is an 8.2
+  feature, so the package never worked on 8.1 despite the constraint saying it
+  did. 8.1 reached end of life in December 2025, so raising the floor is more
+  honest than contorting the types to reach a version nobody should be on.
 - Verified against
   [marginfuse/sdk-contract](https://github.com/marginfuse/sdk-contract): 16
   behavioral scenarios and 13 gateway vectors, the same ones the Node, Python,

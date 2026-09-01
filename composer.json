@@ -4,7 +4,17 @@
   "type": "library",
   "license": "MIT",
   "homepage": "https://marginfuse.com",
-  "keywords": ["ai", "llm", "cost", "margin", "profitability", "stripe", "openai", "anthropic", "openrouter"],
+  "keywords": [
+    "ai",
+    "llm",
+    "cost",
+    "margin",
+    "profitability",
+    "stripe",
+    "openai",
+    "anthropic",
+    "openrouter"
+  ],
   "authors": [
     {
       "name": "Pemira Labs",
@@ -17,7 +27,7 @@
     "source": "https://github.com/marginfuse/marginfuse-php"
   },
   "require": {
-    "php": ">=8.1",
+    "php": ">=8.2",
     "ext-curl": "*",
     "ext-json": "*"
   },
