@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1]
+
+### Fixed
+
+- Every guardrail silently failed open on PHP 8.5. The client called
+  `curl_close()`, a no-op since PHP 8.0 and deprecated in 8.5. Applications
+  that promote deprecations to exceptions, which Symfony's debug handler does,
+  turned that notice into a transport failure, so `decide()` reported the
+  server as unreachable and fell back to `Allow` even when the server had
+  answered `Block`. The guardrails were off and the reason given was false.
+  The call is gone; it never did anything on any supported version.
+
+### Changed
+
+- CI runs the test suite and the shared conformance scenarios on PHP 8.5,
+  which `composer.json` already declared as supported but nothing exercised.
+- The suite now fails on a deprecation or notice, not just a warning. An SDK
+  runs inside somebody else's request path and has no business emitting
+  diagnostics into it.
+
 ## [0.1.0]
 
 First release. PHP 8.2+, no Composer dependencies, `ext-curl` and `ext-json`.

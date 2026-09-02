@@ -364,7 +364,11 @@ final class Client
         $errno = curl_errno($handle);
         $error = curl_error($handle);
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-        curl_close($handle);
+        // No curl_close(). Since PHP 8.0 the handle is an object freed by
+        // refcount, so the call does nothing, and since 8.5 it raises a
+        // deprecation. Under a handler that promotes deprecations to
+        // exceptions that notice became a transport failure, so a real
+        // block verdict came back as a fail-open allow.
 
         if ($errno === CURLE_OPERATION_TIMEDOUT) {
             throw new TimeoutException($error);
