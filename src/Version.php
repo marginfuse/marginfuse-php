@@ -7,7 +7,7 @@ namespace MarginFuse;
 /** The package version, for the user-agent and for humans. */
 final class Version
 {
-    public const VALUE = '0.1.1';
+    public const VALUE = '0.2.0';
 
     private function __construct()
     {

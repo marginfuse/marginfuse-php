@@ -70,6 +70,7 @@ final class Client
         string $model,
         ?string $feature = null,
         ?Usage $expectedUsage = null,
+        ?string $plan = null,
     ): Decision {
         $failOpen = static fn (string $reason): Decision => new Decision(
             action: DecisionAction::Allow,
@@ -81,6 +82,7 @@ final class Client
 
         $body = array_filter([
             'customerId' => $customerId,
+            'plan' => $plan,
             'feature' => $feature,
             'provider' => $provider,
             'model' => $model,
@@ -146,12 +148,14 @@ final class Client
         ?string $decisionId = null,
         ?string $retryOfEventId = null,
         ?string $correctsEventId = null,
+        ?string $plan = null,
     ): void {
         $when = $occurredAt ?? new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
 
         $this->buffer[] = array_filter([
             'eventId' => $eventId ?? 'evt_' . self::uuid4(),
             'customerId' => $customerId,
+            'plan' => $plan,
             'feature' => $feature,
             'provider' => $provider,
             'model' => $model,
@@ -166,6 +170,80 @@ final class Client
         ], static fn (mixed $v): bool => $v !== null);
 
         $this->registerShutdownFlush();
+    }
+
+    /**
+     * Tells MarginFuse who a customer is and what plan they are on.
+     *
+     * `$plan` is the key of a plan you declared in MarginFuse Settings, not a
+     * Stripe price id. MarginFuse derives that customer's revenue from the
+     * plan's price for every cycle, which is what makes margin per customer and
+     * margin policies work with no revenue source connected. Those figures are
+     * labeled as a declared price wherever they appear, because nobody
+     * confirmed collection.
+     *
+     * Safe to call on every sign-in: sending the plan the customer is already
+     * on changes nothing. Sending a different one ends the current cycle at
+     * that moment and prorates what accrued. `$periodStart` backdates the
+     * cycle; `$clearPlan` takes the customer off plans entirely.
+     *
+     * Unlike {@see self::track()}, this sends immediately and reports failure.
+     * track() has a safe default, send it later, and "I could not record what
+     * this customer pays" has none, because a wrong plan is a wrong margin. It
+     * still never throws: check `$identity->ok`, and `onError` is called too.
+     *
+     * @param array<string, string>|null $metadata short labels segment policies match on
+     */
+    public function identify(
+        string $customerId,
+        ?string $plan = null,
+        bool $clearPlan = false,
+        ?\DateTimeInterface $periodStart = null,
+        ?string $name = null,
+        ?string $email = null,
+        ?array $metadata = null,
+    ): Identity {
+        $body = array_filter([
+            'customerId' => $customerId,
+            'plan' => $plan,
+            'clearPlan' => $clearPlan ?: null,
+            'periodStart' => $periodStart?->format('Y-m-d\TH:i:s.u\Z'),
+            'name' => $name,
+            'email' => $email,
+            'metadata' => $metadata,
+        ], static fn (mixed $v): bool => $v !== null);
+
+        try {
+            [$status, $raw] = $this->post('/v1/identify', $body, 5.0);
+        } catch (\Throwable $e) {
+            $this->report($e, 'identify');
+
+            return new Identity(ok: false, error: $e->getMessage());
+        }
+
+        if ($status < 200 || $status >= 300) {
+            $error = new \RuntimeException("identify: HTTP {$status}");
+            $this->report($error, 'identify');
+
+            return new Identity(ok: false, error: $error->getMessage());
+        }
+
+        try {
+            /** @var array<string, mixed> $parsed */
+            $parsed = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            $this->report($e, 'identify');
+
+            return new Identity(ok: false, error: $e->getMessage());
+        }
+
+        return new Identity(
+            ok: true,
+            customerId: self::str($parsed, 'customerId'),
+            plan: self::str($parsed, 'plan'),
+            periodStart: self::str($parsed, 'periodStart'),
+            periodEnd: self::str($parsed, 'periodEnd'),
+        );
     }
 
     /** Tells MarginFuse what your application did with a decision. */
@@ -201,8 +279,9 @@ final class Client
         string $model,
         ?string $feature = null,
         ?Usage $expectedUsage = null,
+        ?string $plan = null,
     ): GuardOutcome {
-        $decision = $this->decide($customerId, $provider, $model, $feature, $expectedUsage);
+        $decision = $this->decide($customerId, $provider, $model, $feature, $expectedUsage, $plan);
 
         // Enforcement depends on the ACTION alone. A missing id costs an
         // acknowledgment; it must never turn a block into a provider call.
@@ -234,6 +313,7 @@ final class Client
                 requestedModel: $model,
                 outcome: Outcome::ProviderError,
                 decisionId: $decision->id,
+                plan: $plan,
             );
             if ($decision->id !== null) {
                 $this->acknowledge($decision->id, Acknowledgment::ProceededAsRequested);
@@ -252,6 +332,7 @@ final class Client
             costUsd: $call->costUsd,
             outcome: $call->outcome,
             decisionId: $decision->id,
+            plan: $plan,
         );
         if ($decision->id !== null) {
             $this->acknowledge(

@@ -95,6 +95,7 @@ try {
                 model: (string) $str('model'),
                 feature: $str('feature'),
                 expectedUsage: isset($params['expectedUsage']) ? $usageFrom($params['expectedUsage']) : null,
+                plan: $str('plan'),
             ));
             break;
 
@@ -110,6 +111,7 @@ try {
                 eventId: $str('eventId'),
                 outcome: Outcome::tryFrom((string) ($str('outcome') ?? 'success')) ?? Outcome::Success,
                 decisionId: $str('decisionId'),
+                plan: $str('plan'),
             );
             break;
 
@@ -118,6 +120,31 @@ try {
                 (string) $str('decisionId'),
                 Acknowledgment::from((string) $str('acknowledgment')),
             );
+            break;
+
+        case 'identify':
+            // The one call that reports failure instead of failing open: a
+            // wrong plan is a wrong margin, so the application must see it.
+            /** @var array<string, string>|null $metadata */
+            $metadata = is_array($params['metadata'] ?? null) ? $params['metadata'] : null;
+            $periodStart = $str('periodStart');
+            $identity = $mf->identify(
+                customerId: (string) $str('customerId'),
+                plan: $str('plan'),
+                clearPlan: ($params['clearPlan'] ?? false) === true,
+                periodStart: $periodStart !== null ? new DateTimeImmutable($periodStart) : null,
+                name: $str('name'),
+                email: $str('email'),
+                metadata: $metadata,
+            );
+            $report['result'] = [
+                'ok' => $identity->ok,
+                'customerId' => $identity->customerId,
+                'plan' => $identity->plan,
+                'periodStart' => $identity->periodStart,
+                'periodEnd' => $identity->periodEnd,
+                'error' => $identity->error,
+            ];
             break;
 
         case 'guard':
@@ -136,6 +163,7 @@ try {
                 provider: (string) $str('provider'),
                 model: (string) $str('model'),
                 feature: $str('feature'),
+                plan: $str('plan'),
             );
             // Only the discriminant and the decision travel; the application's
             // own result means nothing to another language.

@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0]
+
+### Added
+
+- `identify()`: tell MarginFuse who a customer is and which plan they are on.
+
+  MarginFuse can now compute margin without a revenue source connected, from
+  plans you declare in Settings and a plan assigned per customer. This call is
+  how your application assigns that plan itself.
+
+  ```php
+  $identity = $mf->identify(customerId: 'user_8x2m91', plan: 'pro');
+  ```
+
+  `plan` is the key of a plan declared in MarginFuse, not a Stripe price id.
+  Safe to call on every sign-in: sending the plan the customer is already on
+  changes nothing. `periodStart` backdates the cycle, `clearPlan` ends it.
+
+  Unlike `track()`, this sends immediately and reports failure. A wrong plan is
+  a wrong margin, and there is no safe default for "I could not record what
+  this customer pays". Check `$identity->ok`; `onError` is called too. It still
+  never throws into your code.
+
+- `plan` on `track()`, `guard()` and `decide()`, so a plan can ride along with
+  usage rather than needing its own call. There it is a hint: a key that does
+  not resolve is ignored rather than failing your event, because usage must
+  never be lost to a plan note.
+
+The new parameter is last in every signature, so positional calls written
+against 0.1.x keep resolving to the same arguments. Both changes are additive.
+
 ## [0.1.1]
 
 ### Fixed
