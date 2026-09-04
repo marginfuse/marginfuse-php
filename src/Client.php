@@ -301,13 +301,22 @@ final class Client
         }
 
         $modelUsed = $decision->action === DecisionAction::Downgrade ? $decision->model : $model;
+        // A downgrade can cross vendors: the server may answer an OpenAI
+        // request with an Anthropic model. What ran is what gets priced and
+        // attributed, or the saving is measured against the wrong catalogue.
+        $providerUsed = $decision->action === DecisionAction::Downgrade ? $decision->provider : $provider;
+        // A downgrade whose provider call then fails is still a downgrade this
+        // application applied, so both paths below acknowledge the same thing.
+        $acknowledgment = $decision->action === DecisionAction::Downgrade
+            ? Acknowledgment::UsedDowngradeModel
+            : Acknowledgment::ProceededAsRequested;
 
         try {
             $call = $run($decision);
         } catch (\Throwable $e) {
             $this->track(
                 customerId: $customerId,
-                provider: $provider,
+                provider: $providerUsed,
                 model: $modelUsed,
                 feature: $feature,
                 requestedModel: $model,
@@ -316,7 +325,7 @@ final class Client
                 plan: $plan,
             );
             if ($decision->id !== null) {
-                $this->acknowledge($decision->id, Acknowledgment::ProceededAsRequested);
+                $this->acknowledge($decision->id, $acknowledgment);
             }
 
             throw $e;
@@ -324,7 +333,7 @@ final class Client
 
         $this->track(
             customerId: $customerId,
-            provider: $provider,
+            provider: $providerUsed,
             model: $modelUsed,
             usage: $call->usage,
             feature: $feature,
@@ -335,12 +344,7 @@ final class Client
             plan: $plan,
         );
         if ($decision->id !== null) {
-            $this->acknowledge(
-                $decision->id,
-                $decision->action === DecisionAction::Downgrade
-                    ? Acknowledgment::UsedDowngradeModel
-                    : Acknowledgment::ProceededAsRequested,
-            );
+            $this->acknowledge($decision->id, $acknowledgment);
         }
 
         return new GuardOutcome(GuardKind::Completed, $decision, $call->result);

@@ -18,7 +18,7 @@ final class Contract
      *
      * @see https://github.com/marginfuse/sdk-contract
      */
-    public const VERSION = 1;
+    public const VERSION = 2;
 
     private function __construct()
     {
