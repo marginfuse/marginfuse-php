@@ -108,10 +108,15 @@ final class Client
         }
 
         try {
-            /** @var array<string, mixed> $parsed */
             $parsed = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             $this->report($e, 'decide');
+
+            return $failOpen('unreadable response');
+        }
+
+        if (!self::validDecision($parsed)) {
+            $this->report(new \RuntimeException('decide: invalid decision response'), 'decide');
 
             return $failOpen('unreadable response');
         }
@@ -229,8 +234,11 @@ final class Client
         }
 
         try {
-            /** @var array<string, mixed> $parsed */
             $parsed = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($parsed)) {
+                throw new \JsonException('identify: expected an object response');
+            }
+            /** @var array<string, mixed> $parsed */
         } catch (\JsonException $e) {
             $this->report($e, 'identify');
 
@@ -487,6 +495,29 @@ final class Client
         $value = $source[$key] ?? null;
 
         return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /** @phpstan-assert-if-true array<string, mixed> $value */
+    private static function validDecision(mixed $value): bool
+    {
+        if (!is_array($value) || !in_array($value['action'] ?? null, ['allow', 'block', 'topup_required', 'downgrade'], true)) {
+            return false;
+        }
+        foreach (['model', 'provider', 'id', 'topupContext', 'degradedReason'] as $key) {
+            if (array_key_exists($key, $value)) {
+                if (!is_string($value[$key])) {
+                    return false;
+                }
+                if (($key === 'model' || $key === 'provider') && trim($value[$key]) === '') {
+                    return false;
+                }
+            }
+        }
+        if (array_key_exists('degraded', $value) && !is_bool($value['degraded'])) {
+            return false;
+        }
+
+        return $value['action'] !== 'downgrade' || (isset($value['model']) && trim($value['model']) !== '');
     }
 
     private static function uuid4(): string

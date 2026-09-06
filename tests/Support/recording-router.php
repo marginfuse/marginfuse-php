@@ -32,7 +32,7 @@ file_put_contents(
     FILE_APPEND | LOCK_EX,
 );
 
-echo $path === '/v1/decisions'
+echo in_array($path, ['/v1/decisions', '/v1/identify'], true)
     ? (string) file_get_contents($dir . '/decision.json')
     : '{}';
 

@@ -30,9 +30,9 @@ final class RecordingServer
     /**
      * Starts a server that answers /v1/decisions with `$decision`.
      *
-     * @param array<string, mixed> $decision the verdict, in wire shape
+     * @param mixed $decision the decoded wire response, including malformed JSON values
      */
-    public static function start(array $decision): self
+    public static function start(mixed $decision): self
     {
         $dir = sys_get_temp_dir() . '/marginfuse-recording-' . bin2hex(random_bytes(8));
         if (!mkdir($dir) && !is_dir($dir)) {

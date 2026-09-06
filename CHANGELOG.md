@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1] - 2026-09-06
+
+- Validate successful decision responses before enforcing them. Malformed verdicts now fail open on the original model/provider, report an error, and explicitly mark protection as degraded. Valid blocks without an optional decision ID remain enforced.
+- Return an unsuccessful identity instead of throwing when identify receives a scalar JSON response.
+- Clarify cached input token normalization and provider dispatch in integration examples.
+
+
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

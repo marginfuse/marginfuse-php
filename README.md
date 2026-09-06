@@ -36,6 +36,7 @@ use MarginFuse\Usage;
 $mf = new Client(apiKey: $_ENV['MARGINFUSE_KEY']);
 
 $response = $openai->chat('gpt-4.1', $messages);
+$cached = $response->usage->promptTokensDetails?->cachedTokens ?? 0;
 
 $mf->track(
     customerId: 'cus_8x2m91',   // your Stripe customer id, or your own
@@ -43,11 +44,17 @@ $mf->track(
     model: 'gpt-4.1',
     feature: 'ai_chat',
     usage: new Usage(
-        inputTokens: $response->usage->promptTokens,
+        inputTokens: $response->usage->promptTokens - $cached,
+        cachedInputTokens: $cached,
         outputTokens: $response->usage->completionTokens,
     ),
 );
 ```
+
+The illustrative provider client uses OpenAI usage fields: total prompt tokens
+include cached tokens, so subtract cached reads before setting `inputTokens`.
+Adapt field names to your provider SDK; do not subtract them again for providers
+that already report fresh input separately.
 
 A null property in `Usage` means *not reported*, not "used none": it is left off
 the request entirely, because claiming a call used zero input tokens is a
@@ -74,6 +81,10 @@ the end of each job.
 
 Protection. Ask before the call runs, and act on the answer.
 
+The callback below uses a single provider client. Keep downgrade policies within
+that provider, or dispatch to the matching client using the decision's provider.
+A model name alone cannot route a request to another vendor.
+
 ```php
 use MarginFuse\Decision;
 use MarginFuse\GuardKind;
@@ -83,10 +94,12 @@ $outcome = $mf->guard(
     run: function (Decision $decision) use ($openai, $messages): ProviderCall {
         // $decision->model is the one to call: a downgrade verdict changes it.
         $response = $openai->chat($decision->model, $messages);
+        $cached = $response->usage->promptTokensDetails?->cachedTokens ?? 0;
 
         return new ProviderCall(
             usage: new Usage(
-                inputTokens: $response->usage->promptTokens,
+                inputTokens: $response->usage->promptTokens - $cached,
+                cachedInputTokens: $cached,
                 outputTokens: $response->usage->completionTokens,
             ),
             result: $response,
